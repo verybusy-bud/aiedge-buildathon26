@@ -208,6 +208,9 @@ h1 > span { color: #70020f; }
 }
 
 .source-disclosure { margin: -6px 0 15px; font-size: 11px; line-height: 1.7; color: #725e62; }
-.source-disclosure > span:first-child { color: #70020f; font-weight: 600; }
 .source-disclosure a { color: #70020f; text-underline-offset: 3px; }
+.editorial-byline { display: flex; align-items: center; gap: 7px; margin: -2px 0 8px; font-size: 11px; color: #645156; }
+.editorial-byline strong { color: #26181b; font-size: 12px; font-weight: 600; }
+.editorial-byline > span:last-child { margin-left: 2px; color: #806d71; }
+.editorial-avatar { display: grid; place-items: center; width: 23px; height: 23px; flex: 0 0 23px; border-radius: 50%; background: #f0e4e6; color: #70020f; font-size: 9px; font-weight: 700; }
 .detail-heading + .grouping-note + .source-disclosure { margin-top: -3px; }
