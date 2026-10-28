@@ -29,6 +29,9 @@ importers:
       sharp:
         specifier: ^0.34.0
         version: 0.34.5
+      stripe:
+        specifier: ^23.0.1
+        version: 23.0.1(@types/node@24.19.2)
       zod:
         specifier: ^4.0.0
         version: 4.6.7
@@ -748,6 +751,15 @@ packages:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
 
+  stripe@23.0.1:
+    resolution: {integrity: sha512-VFLs9IAzSZ8GIm6/vqhjqOL0fbYrSNYCpgZ3LS3YkSi/i5RnyMpu/Hf9YxPTOCYwc3mZKU3IJvuvKffQH2NLMg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@types/node': '>=20'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   styled-jsx@5.1.6:
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
     engines: {node: '>= 12.0.0'}
@@ -1310,6 +1322,10 @@ snapshots:
     optional: true
 
   source-map-js@1.2.2: {}
+
+  stripe@23.0.1(@types/node@24.19.2):
+    optionalDependencies:
+      '@types/node': 24.19.2
 
   styled-jsx@5.1.6(react@19.3.1):
     dependencies:

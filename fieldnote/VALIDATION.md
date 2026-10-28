@@ -1,3 +1,13 @@
+# Monetization v1 validation
+
+- Nineteen automated tests pass, including all five SQL migrations, Stripe signature verification/tamper rejection, duplicate/out-of-order webhook reconciliation, paid access/refund/expiry/mode rules, collection ownership and RLS grants, admin-only sponsorship review, campaign eligibility and organic/ad separation, plus all previous free simulation tests.
+- TypeScript and the production Webpack build pass. Local HTTP checks confirm unconfigured purchases, sponsorship writes and webhooks return 503; forged checkout return IDs do not activate access and the public Supporter directory remains empty.
+- Desktop Supporter, contribution/custom amount, and application pages inspected. Responsive render snapshots at 390px inspected; live framing headers remained unchanged.
+- Stripe/Supabase credentials were unavailable. Hosted test/live Checkout, actual portal settings, provider delivery, and live database integration were not claimed as tested. Payments and application submission correctly show unavailable in browser simulation.
+- Supplied live URL returned Vercel 404 during inspection. Setup is documented in MONETIZATION.md.
+
+---
+
 # Current version: complete browser simulation
 
 The default app needs no Supabase project, credentials, migrations, SMTP, or server-side storage. Earlier live-backend notes below apply only to the optional live implementation.

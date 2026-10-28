@@ -1,0 +1,5 @@
+import {NextRequest,NextResponse} from 'next/server';
+import {commerceConfig,stripeClient,repository,supportedPrices} from '@/lib/commerce-server';
+import {verifyBillingEvent,reconcileBilling} from '@/lib/billing-sync';
+export const runtime='nodejs';export const maxDuration=60;
+export async function POST(req:NextRequest){const config=commerceConfig();if(!config.ready)return NextResponse.json({error:'Payments unavailable.'},{status:503});if(Number(req.headers.get('content-length'))>1048576)return new NextResponse(null,{status:413});let event;try{event=verifyBillingEvent(stripeClient(),await req.text(),req.headers.get('stripe-signature')??'',process.env.STRIPE_WEBHOOK_SECRET!);}catch{return NextResponse.json({error:'Invalid webhook signature.'},{status:400});}try{const status=await reconcileBilling(event,stripeClient(),repository(),supportedPrices(),config.livemode);return NextResponse.json({received:true,status});}catch(e){console.error('Billing webhook reconciliation failed',event.id,e instanceof Error?e.name:'database error');return NextResponse.json({error:'Reconciliation failed; retry delivery.'},{status:500});}}

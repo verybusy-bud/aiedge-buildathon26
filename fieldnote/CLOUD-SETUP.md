@@ -15,3 +15,7 @@ No Supabase keys, SQL migrations, SMTP sender, or email callback URLs are requir
 **Important distinction:** Different visitors do not share a backend. Each browser has its own saved records and simulated accounts. Tabs on the same browser origin share records, while each tab can select a different test identity. Clearing site data clears the simulation. A genuine shared local-news service would require a separately configured shared backend and real authentication.
 
 For the optional live-service path, use [LIVE-BACKEND.md](LIVE-BACKEND.md). It is not part of this simulation deployment.
+
+## Real payments and advertising
+
+The no-backend simulation does not simulate successful payments or grant Supporter access. Monetization requires real confirmed accounts, the server database, migration 005, and Stripe setup. Follow [MONETIZATION.md](MONETIZATION.md) before enabling live payments.

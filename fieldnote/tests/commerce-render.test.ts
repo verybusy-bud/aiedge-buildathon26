@@ -1,0 +1,6 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {createElement} from 'react';import {renderToStaticMarkup} from 'react-dom/server';import {Advertisement,SupporterBadge} from '../components/commerce-feed';import {demoEvents} from '../lib/demo';
+test('Commercial identity stays explicit in post/detail label and membership badge',()=>{
+ const markup=renderToStaticMarkup(createElement(Advertisement,{placement:{id:'ad',event_id:'event',sponsor_name:'Sioux Falls Cafe',destination_url:'https://example.com',starts_at:new Date().toISOString(),ends_at:new Date(Date.now()+10000).toISOString(),state:'scheduled',event:demoEvents()[0]}}));assert.match(markup,/Advertisement/);assert.match(markup,/Paid placement by/);assert.match(markup,/Sioux Falls Cafe/);
+ const badge=renderToStaticMarkup(createElement(SupporterBadge,{profile:{supporter:true,test:true,accent:'red',access_end:new Date(Date.now()+10000).toISOString()}}));assert.match(badge,/financial support only/);assert.match(badge,/not identity or content verification/);assert.match(badge,/>test</);
+ assert.equal(renderToStaticMarkup(createElement(SupporterBadge,{profile:{supporter:true,test:false,accent:'gold',access_end:new Date(0).toISOString()}})),'');
+});

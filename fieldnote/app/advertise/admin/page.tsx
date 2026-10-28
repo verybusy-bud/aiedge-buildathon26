@@ -1,0 +1,3 @@
+import CommerceLayout from '@/components/commerce-layout';import {SponsorAdmin} from '@/components/sponsorships';import {administrator} from '@/lib/commerce-server';
+export const dynamic='force-dynamic';export const metadata={title:'Sponsorship review — Fieldnote'};
+export default async function Page(){let allowed=false;try{await administrator();allowed=true;}catch{}return <CommerceLayout><span className="eyebrow">ADMINISTRATORS ONLY</span><h1>Sponsorship review</h1>{allowed?<SponsorAdmin/>:<p className="commerce-notice">Administrator access to the real account database is required. Browser-simulation moderator accounts cannot access applications or create placements.</p>}</CommerceLayout>;}

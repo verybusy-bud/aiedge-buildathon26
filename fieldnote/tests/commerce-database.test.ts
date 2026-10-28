@@ -1,0 +1,42 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {PGlite} from '@electric-sql/pglite';import {readFile} from 'node:fs/promises';
+test('Commerce migration enforces entitlements, ownership, administrator-only advertising and campaign eligibility',async()=>{
+ const db=new PGlite();try{
+ await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email_confirmed_at timestamptz,raw_user_meta_data jsonb);create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);`);
+ for(const file of ['001_core.sql','002_assessment.sql','003_private_uploads.sql','004_local_news_grouping.sql','005_monetization.sql'])await db.exec((await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8')).replace('create extension if not exists pgcrypto;',''));
+ const ids=['00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000003'];for(const id of ids)await db.query('insert into auth.users values($1,now(),$2)',[id,JSON.stringify({display_name:'Account'})]);
+ await db.query("update profiles set role='admin' where id=$1",[ids[2]]);
+ const rpc=async(name:string,args:unknown[])=>{const placeholders=args.map((_,i)=>'$'+(i+1));return (await db.query<{v:any}>(`select ${name}(${placeholders.join(',')}) v`,args.map(a=>typeof a==='object'&&a!==null?JSON.stringify(a):a))).rows[0].v;};
+ await assert.rejects(()=>rpc('paid_action',[ids[0],false,'accent',{accent:'gold'}]),/membership required/);
+ await db.query('insert into billing_customers values($1,false,$2)',[ids[0],'cus_1']);
+ const snapshot=[{id:'sub_1',status:'active',price_id:'price_month',period_end:new Date(Date.now()+86400000).toISOString(),cancel_at_period_end:true,invoice_paid:true,refunded:false,disputed:false}];
+ let lease=await rpc('commerce_claim',['customer:cus_1']);assert.ok(lease);assert.equal(await rpc('commerce_claim',['customer:cus_1']),null);
+ await assert.rejects(()=>rpc('apply_billing_snapshot',['evt_bad','invoice.paid',1,'cus_1',ids[0],snapshot,[]]),/lease expired/);
+ assert.equal(await rpc('apply_billing_snapshot',['evt_1','invoice.paid',1,'cus_1',lease,snapshot,[]]),true);assert.equal(await rpc('supporter_active',[ids[0],false]),true);assert.equal(await rpc('supporter_active',[ids[0],true]),false);
+ lease=await rpc('commerce_claim',['customer:cus_1']);assert.equal(await rpc('apply_billing_snapshot',['evt_1','invoice.paid',1,'cus_1',lease,[],[]]),false);assert.equal(await rpc('supporter_active',[ids[0],false]),true);
+ await rpc('paid_action',[ids[0],false,'accent',{accent:'gold'}]);const collection=await rpc('paid_action',[ids[0],false,'collection',{name:'Weekend'}]);await assert.rejects(()=>rpc('paid_action',[ids[1],false,'delete_collection',{collection_id:collection.collection_id}]),/membership required/);
+ await db.query('insert into billing_customers values($1,false,$2)',[ids[1],'cus_2']);const secondLease=await rpc('commerce_claim',['customer:cus_2']);await rpc('apply_billing_snapshot',['evt_second','invoice.paid',1,'cus_2',secondLease,[{...snapshot[0],id:'sub_2'}],[]]);await assert.rejects(()=>rpc('paid_action',[ids[1],false,'delete_collection',{collection_id:collection.collection_id}]),/Collection unavailable/);
+ lease=await rpc('commerce_claim',['customer:cus_1']);await rpc('apply_billing_snapshot',['evt_refund','charge.refunded',2,'cus_1',lease,[{...snapshot[0],refunded:true}],[]]);assert.equal(await rpc('supporter_active',[ids[0],false]),false);await assert.rejects(()=>rpc('paid_action',[ids[0],false,'accent',{accent:'slate'}]),/membership required/);
+ const app=await rpc('sponsor_action',[ids[0],'apply',{business_name:'Local Cafe',contact_email:'test@example.test',website:'https://example.com',proposed_post:'A local cafe is hosting a community coffee gathering.',destination_url:'https://example.com/event',requested_start:new Date(Date.now()-60000).toISOString(),requested_end:new Date(Date.now()+86400000).toISOString(),budget:'$150'}]);
+ await assert.rejects(()=>rpc('sponsor_action',[ids[1],'review',{application_id:app.id,state:'approved',reason:'Looks like an appropriate local post.'}]),/Administrator/);
+ await rpc('sponsor_action',[ids[2],'review',{application_id:app.id,state:'approved',reason:'Reviewed under the standard content policies.'}]);
+ const placement=await rpc('sponsor_action',[ids[2],'create_placement',{application_id:app.id,title:'Community coffee gathering this weekend',category:'Community',location:'Sioux Falls downtown',starts_at:new Date(Date.now()-60000).toISOString(),ends_at:new Date(Date.now()+86400000).toISOString(),pricing_note:'$150 agreed manually',reason:'Content reviewed without preferential treatment.'}]);
+ assert.deepEqual(await rpc('public_sponsorships',[]),[]);
+ const schedule={application_id:app.id,placement_id:placement.placement_id,state:'scheduled',starts_at:new Date(Date.now()-60000).toISOString(),ends_at:new Date(Date.now()+86400000).toISOString(),reason:'Scheduling the approved local placement.'};await rpc('sponsor_action',[ids[2],'placement',schedule]);assert.equal((await rpc('public_sponsorships',[])).length,1);
+ assert.ok(!(await rpc('public_feed',[])).some((e:any)=>e.id===placement.event_id));
+ await rpc('mutate',[ids[1],'report',{event_id:placement.event_id,body:'A separate community account about the advertised gathering.',observed_at:new Date().toISOString(),assisted:false}]);
+ const primary=(await db.query<{primary_report_id:string}>('select primary_report_id from sponsored_placements where id=$1',[placement.placement_id])).rows[0].primary_report_id;
+ await rpc('mutate',[ids[2],'moderate',{event_id:placement.event_id,report_id:primary,state:'quarantined',reason:'Review the original sponsored content.',public_notice:'The sponsored content is under review.'}]);assert.deepEqual(await rpc('public_sponsorships',[]),[]);
+ await rpc('mutate',[ids[2],'moderate',{event_id:placement.event_id,report_id:primary,state:'visible',reason:'The original content passed review.',public_notice:'The sponsored post has been restored.'}]);assert.equal((await rpc('public_sponsorships',[])).length,1);
+ await rpc('mutate',[ids[1],'flag',{event_id:placement.event_id,reason:'Please review this paid post under ordinary policies.'}]);
+ await rpc('mutate',[ids[2],'moderate',{event_id:placement.event_id,state:'quarantined',reason:'Reviewing the flagged advertisement.',public_notice:'This post is temporarily under review.'}]);assert.deepEqual(await rpc('public_sponsorships',[]),[]);
+ await rpc('mutate',[ids[2],'moderate',{event_id:placement.event_id,state:'visible',reason:'Restoring the reviewed advertisement.',public_notice:'Review completed and post restored.'}]);
+ await rpc('sponsor_action',[ids[2],'placement',{...schedule,state:'paused'}]);assert.deepEqual(await rpc('public_sponsorships',[]),[]);
+ await rpc('sponsor_action',[ids[2],'review',{application_id:app.id,state:'rejected',reason:'The application needs a new policy review.'}]);await assert.rejects(()=>rpc('sponsor_action',[ids[2],'placement',schedule]),/Approved application/);
+ await rpc('sponsor_action',[ids[2],'review',{application_id:app.id,state:'approved',reason:'The application now passes the policy review.'}]);
+ await rpc('sponsor_action',[ids[2],'placement',{...schedule,starts_at:new Date(Date.now()+3600000).toISOString()}]);assert.deepEqual(await rpc('public_sponsorships',[]),[]);
+ await rpc('sponsor_action',[ids[2],'placement',{...schedule,state:'ended'}]);await assert.rejects(()=>rpc('sponsor_action',[ids[2],'placement',schedule]),/cannot restart/);
+ await assert.rejects(()=>rpc('mutate',[ids[2],'merge',{event_id:placement.event_id,source_event_id:placement.event_id,reason:'This must not lose its paid placement label.',public_notice:'Reviewing duplicate post.'}]),/Sponsored posts/);
+ await db.query("update billing_subscriptions set period_end=now()-interval '1 second' where customer_id='cus_2'");assert.equal(await rpc('supporter_active',[ids[1],false]),false);
+ assert.equal((await db.query<{v:boolean}>("select has_table_privilege('authenticated','billing_subscriptions','UPDATE') v")).rows[0].v,false);assert.equal((await db.query<{v:boolean}>("select has_function_privilege('authenticated','public.paid_action(uuid,boolean,text,jsonb)','EXECUTE') v")).rows[0].v,false);
+ }finally{await db.close();}
+});

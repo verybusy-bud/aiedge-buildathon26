@@ -2,7 +2,11 @@
 
 Reliable local information, without the noise. A simple Sioux Falls news and events app with food, traffic, special-event, and community filters. Reports about the same event appear together while each person's account stays separate.
 
-## No Supabase required
+## Monetization
+
+Supporter membership, one-time contributions, and reviewed sponsored posts are implemented through Stripe and the real account database. **Payments and paid benefits are never simulated.** They show unavailable in browser simulation. See [MONETIZATION.md](MONETIZATION.md) for migration 005, exact credentials, webhook configuration, and launch checks. Basic features remain free.
+
+## No Supabase required for the free simulation
 
 This version runs a complete **browser-local simulation by default**. No account keys, database, migrations, email service, or environment file are needed.
 
