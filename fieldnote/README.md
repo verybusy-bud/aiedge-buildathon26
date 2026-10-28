@@ -21,7 +21,7 @@ Open http://127.0.0.1:3000. By default, local development uses browser simulatio
 
 ## Starter stories
 
-The first version includes seven source-linked Sioux Falls news stories. Each has an AI-written summary disclosure and a link to the published report. They start with zero firsthand reports; user accounts can add their own observations. Migration `006_editorial_starter_events.sql` seeds the same stories into Supabase for all visitors.
+The first version includes seven source-linked Sioux Falls news stories. Each has a concise editorial summary and a link to the published report. They start with zero firsthand reports; user accounts can add their own observations. Migration `006_editorial_starter_events.sql` seeds the same stories into Supabase for all visitors.
 
 ## Trust and privacy
 
