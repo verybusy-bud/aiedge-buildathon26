@@ -206,3 +206,8 @@ h1 > span { color: #70020f; }
   .page-heading .eyebrow { font-size: 12px; }
   .supporter-nav a { font-size: 14px; }
 }
+
+.source-disclosure { margin: -6px 0 15px; font-size: 11px; line-height: 1.7; color: #725e62; }
+.source-disclosure > span:first-child { color: #70020f; font-weight: 600; }
+.source-disclosure a { color: #70020f; text-underline-offset: 3px; }
+.detail-heading + .grouping-note + .source-disclosure { margin-top: -3px; }
