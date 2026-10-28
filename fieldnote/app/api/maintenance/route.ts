@@ -1,8 +1,10 @@
 import { NextRequest,NextResponse } from 'next/server';
 import { timingSafeEqual } from 'node:crypto';
 import { admin } from '@/lib/server';
+import { simulation } from '@/lib/mode';
 export const runtime='nodejs';export const maxDuration=60;
 export async function POST(req:NextRequest){
+ if(simulation)return NextResponse.json({ok:true,mode:'browser-simulation',message:'Local cleanup runs when the browser simulation is used.'});
  const expected=process.env.CRON_SECRET;const provided=req.headers.get('authorization')??'';
  if(!expected||provided.length!==`Bearer ${expected}`.length||!timingSafeEqual(Buffer.from(provided),Buffer.from(`Bearer ${expected}`)))return new NextResponse(null,{status:403});
  try{const db=admin();const {error}=await db.rpc('record_assessments');if(error)throw error;

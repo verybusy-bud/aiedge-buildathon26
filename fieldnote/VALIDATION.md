@@ -1,3 +1,17 @@
+# Current version: complete browser simulation
+
+The default app needs no Supabase project, credentials, migrations, SMTP, or server-side storage. Earlier live-backend notes below apply only to the optional live implementation.
+
+## Simulation checks (October 28, 2026)
+
+- Twelve automated tests pass, including in-memory IndexedDB tests for account confirmation, media upload/finalization, access rules, expiry, and deletion of stored blobs. Core tests cover grouped reports, serialization, limits, corrections, follows, flags, appeals, review and deletion.
+- TypeScript checks and the production Webpack build pass with simulation enabled by default and no Supabase connection.
+- Browser walkthrough passed: create and confirm a test account; submit a story with a clearly labeled sample image; generate a preview; follow and reload; switch reporters; add a report and see the score change; flag the story; switch to the test moderator; save a review and inspect its audit entry. No Supabase connection was configured.
+- Real cameras, screen-reader review, storage exhaustion, and the full browser/device matrix remain unverified. The sample-capture flow validates media processing without camera access.
+- This is local simulation, not secure authentication/private storage or shared cross-device hosting. Simulated stories and browser hashes are not verified news or server provenance.
+
+---
+
 # Validation record
 
 Checked locally on October 28, 2026. This is a newly authored project, not a verified copy of the historical implementation.

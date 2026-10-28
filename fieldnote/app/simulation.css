@@ -1,0 +1,26 @@
+.mode-banner { font-size: 9px; letter-spacing: .7px; gap: 7px; flex-wrap: wrap; }
+.switch-account { margin-left: auto; font-size: 11px; letter-spacing: 0; font-weight: 400; }
+.simulation-auth > p { font-size: 13px; line-height: 1.8; color: #705d61; margin-bottom: 18px; }
+.test-accounts { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 24px; }
+.test-account { display: flex; gap: 9px; align-items: center; text-align: left; padding: 13px; background: #fff; border: 1px solid #e6d8dc; }
+.test-account:hover { border-color: #70020f; }
+.test-account strong { display: block; font-size: 12px; }
+.test-account small { display: block; font-size: 10px; color: #836c72; margin-top: 5px; }
+.test-account > svg:last-child { margin-left: auto; }
+.simulation-footnote { display: block; font-size: 11px; line-height: 1.8; color: #7b666c; margin-top: 22px; }
+.sim-confirm { background: #f4e9ec; padding: 20px; color: #70020f; }
+.sim-confirm h3 { margin: 10px 0; font-size: 22px; }
+.sim-confirm p { font-size: 12px; line-height: 1.8; color: #705d61; margin-bottom: 18px; }
+.assessment-card details { text-align: left; font-size: 11px; color: #705d61; margin-top: 20px; }
+.assessment-card summary, .technical-details summary, .form details summary { cursor: pointer; color: #70020f; padding: 6px 0; }
+.assessment-card details ul { padding-left: 15px; font-size: 11px; line-height: 1.8; }
+.form details { border-top: 1px solid #e6dfe0; padding-top: 10px; font-size: 12px; line-height: 1.8; color: #705d61; }
+.technical-details { margin: 26px 0; border-top: 1px solid #e6dfe0; padding-top: 20px; }
+.technical-details summary { font-size: 15px; }
+.about-hero { padding-bottom: 25px; }
+.about-hero > p { font-size: 16px; }
+.purpose-note { border-left: 3px solid #70020f; padding: 0 0 0 16px; font-size: 14px; line-height: 1.9; color: #5f5154; max-width: 670px; margin: 20px 0 35px; }
+.witness .evidence { font-size: 11px; }
+.witness-footer { border-top: 0; }
+.card-footnote { color: #887378; font-size: 10px; }
+@media(max-width:700px){.test-accounts{grid-template-columns:1fr}.switch-account{margin-left:0}.mode-banner>span:last-of-type{font-size:10px}.page-heading h1{font-size:40px}}

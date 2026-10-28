@@ -1,119 +1,67 @@
-# Fieldnote
+# FieldNote
 
-Start with [CLOUD-SETUP.md](CLOUD-SETUP.md) for the GitHub → Supabase → Vercel walkthrough and multi-account signup checks.
+Reliable local information, without the noise. A simple Sioux Falls news and events app with food, traffic, special-event, and community filters. Reports about the same event appear together while each person's account stays separate.
 
-A Next.js 16 / React / TypeScript application for Sioux Falls news and local events, with keyword/theme search and separate firsthand accounts grouped under one event. Sioux Falls is the initial pilot. Supabase provides authentication, Postgres and private media storage. Vercel hosts the application; GitHub stores its source.
+## No Supabase required
 
-## Run locally
-
-Requires Node.js 20.9+ and pnpm 11.25.0.
+This version runs a complete **browser-local simulation by default**. No account keys, database, migrations, email service, or environment file are needed.
 
 ```sh
 pnpm install
+pnpm dev --webpack
 ```
 
-Copy `.env.example` to `.env.local`. For an illustrative preview, explicitly set `NEXT_PUBLIC_DEMO_MODE=true`, then run `pnpm dev --webpack`. The demo has five illustrative events and cannot submit reports, media, follows or moderation changes. With demo false and missing credentials the app shows a connection-needed state, never fake live reports.
+Open http://127.0.0.1:3000. Requires Node.js 20.9+ and pnpm 11.25.0.
 
-For a live connection, set demo false and configure the Supabase values below. Start with `pnpm dev --webpack`. Open http://127.0.0.1:3000. The production build is `pnpm build --webpack`; `pnpm start` serves that build. Webpack avoids a Windows restricted-environment junction error with the default Turbopack engine; both are supported by Next.js 16.
+## Try the full flow
 
-## Supabase setup
+1. Choose **Switch test account** and select a sample reporter, or create a display name and click **Confirm & continue** to simulate email confirmation. No real email or password is requested.
+2. Choose **Report something**. Enter a headline, theme, approximate location and firsthand account. Use an existing event suggestion to keep reports together.
+3. Try **Use sample capture** to exercise uploads without a camera. It creates an image labeled SIMULATED CAPTURE. Optionally consent to a public preview, then submit. Camera capture is also available on supported devices over HTTPS/localhost.
+4. Switch to another reporter and add an account to the same event. The listing remains one story with separate reports and a recalculated context score.
+5. Follow a story, flag a concern, and switch to **Review moderator → Review queue** to review it. Test corrections, appeals, quarantine/removal/restoration, and grouping duplicate listings.
+6. Reload: reports, media and follows persist. Each tab has its own selected identity, so two tabs can demonstrate different accounts against the same browser-local records.
+7. A test account can delete itself and its local reports/media from its account panel. No cloud backups are created.
 
-This is a new implementation with four ordered migrations. It was not recovered from or applied to an earlier Fieldnote database. Do not apply these blindly to an existing database: compare its schema and add forward migrations instead.
+## What is simulated
 
-Apply in filename order through Supabase SQL tooling:
-
-1. `supabase/migrations/001_core.sql`
-2. `supabase/migrations/002_assessment.sql`
-3. `supabase/migrations/003_private_uploads.sql`
-4. `supabase/migrations/004_local_news_grouping.sql`
-
-Enable email/password authentication **and require email confirmation**. Set the Site URL to the deployment origin. Allow `https://YOUR-DOMAIN/auth/callback` and the exact localhost/127.0.0.1 callback origins used for development. Signup uses the PKCE callback route. Configure SMTP delivery, password strength and authentication rate limits in Supabase before opening registration.
-
-Set these variables in `.env.local` locally and in the Vercel project environment for hosting:
-
-| Variable | Purpose |
+| Capability | Implementation |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Project endpoint |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public project key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only privileged credential |
-| `NEXT_PUBLIC_SITE_URL` | Canonical application origin |
-| `NEXT_PUBLIC_DEMO_MODE` | `false` in production |
-| `CRON_SECRET` | Long random secret for maintenance calls |
+| Accounts and confirmation | Local test identities and an in-app confirmation step; no email or password |
+| Database | Browser localStorage, with mutation locks where supported |
+| Media storage | IndexedDB blobs; no upload to a server |
+| Upload intents | Local owner/report/expiry and one-time finalization checks |
+| Provenance | Browser-calculated SHA-256 and local capture time, explicitly not server verification |
+| Image previews | Browser re-encoding, with submitter consent |
+| Grouping and scores | Same-event matching, separate accounts, distinct hashes, recency and moderator factors |
+| Follows and updates | Local records with UI refresh and same-origin tab updates |
+| Moderation | Test moderator, concerns, appeals, decisions, audit trail and restoration |
+| Cleanup | Expired pending captures cleaned on activity; local account/media deletion |
 
-Never commit `.env.local`, expose the service-role key, or prefix it with `NEXT_PUBLIC_`. Public environment values are baked into a Next.js build; redeploy after changes, including switching demo mode off.
+**Limits:** This is not shared multi-user hosting. Each browser origin has its own records. Different devices, browsers, or visitors do not share reports. Test accounts and private-media access are workflow demonstrations, not secure authentication or confidentiality. Anyone with access to browser storage can inspect/change data. Use test information. Clearing browser/site data removes saved records; storage quotas and browser privacy settings apply. Downloaded/exported copies are outside the app.
 
-All application tables enable RLS and deny direct anonymous/authenticated table access. Server APIs verify the current session and only then call service-only database functions. Public feed output is explicitly projected and excludes emails, original storage paths and restricted audit payloads. The service role bypasses RLS, so server authorization and service-only function grants are security-critical.
+Sample stories are illustrative, not current Sioux Falls news. The context score is not a truth guarantee or a validated credibility model. No AI detector is integrated.
 
-Appoint the first trusted administrator through the Supabase SQL editor, using the UUID of an already-confirmed account:
+## Put the simulation online
 
-```sql
-update public.profiles set role='admin' where id='CONFIRMED-USER-UUID';
-```
+Import the GitHub repository into Vercel. Set Root Directory to `fieldnote` and Build Command to `pnpm build --webpack`. No Supabase settings are needed. Simulation defaults on when `NEXT_PUBLIC_SIMULATION_MODE` is unset; you may explicitly set it to `true`. Redeploy after environment changes. See [CLOUD-SETUP.md](CLOUD-SETUP.md).
 
-Only a trusted operator should run this. Signup metadata never sets roles. Appoint moderators through an equivalent controlled operator process, and document every appointment.
+## Optional real backend
 
-## Deploy through Vercel
+The previous Supabase server routes, authorization, SQL migrations, storage processing, and cleanup scripts remain available, but the simulation does not call them. Only an explicit `NEXT_PUBLIC_SIMULATION_MODE=false` opts into live services. See [LIVE-BACKEND.md](LIVE-BACKEND.md) for the separate setup and launch requirements. Live auth/storage have not been validated against a real project in this workspace.
 
-Commit source and lockfile to your chosen GitHub repository. Exclude `node_modules`, `.next`, `.env.local` and private evidence. Import the repository into Vercel, set the root directory to this app folder if using a larger repository, select Next.js, and set the build command to `pnpm build --webpack`. Set environment values, deploy, then confirm the production site URL and auth redirects match. GitHub Pages is not suitable for these server routes.
+## Design and source
 
-No GitHub push or hosted deployment has been performed by generating this project. No live credentials are included.
+Brand red: **#70020F**. Headings use locally bundled Anton under the included SIL Open Font License. Body text uses Arial Unicode MS where installed, with Arial fallback. No external font requests. Technical information is linked from `/about` and collapsed by default.
 
-## Assessment
+Repository: https://github.com/aiedge-buildathon-2026/team17-natural-intelligence
 
-Postgres `assessment` is authoritative. Two accounts earn 1 point; three or more earn 2. Distinct file hashes from finalized captures earn 0.5 each, capped at 1. Latest visible report receipt within six hours earns 1, within 24 earns 0.5. Explicit moderator corroboration adds 1; conflicting status subtracts 1. Clamp to 0–5. No visible accounts means no score. Quarantined/removed reports and their captures do not contribute. Hidden events are excluded from the public feed.
-
-Scores are computed at read time, including time decay without new posts. Database triggers record changes when reports, evidence or event status change. Run the maintenance endpoint every five minutes to record time-based score transitions and clean abandoned uploads. For example, use a trusted scheduler to POST `/api/maintenance` with `Authorization: Bearer YOUR_CRON_SECRET`. Do not put the secret in the URL. An external scheduler is required; this repository does not provision one. Alert on non-2xx responses.
-
-The frontend reference calculation is tested against the database on representative scenarios. This is a transparent evidence summary, not a validated credibility model, AI detector, proof of independent witnesses or truth probability.
-
-## Media
-
-Camera capture uses `getUserMedia` and MediaRecorder in supported browsers, with HTTPS/localhost required. No gallery/file import control is provided. The server cannot prove an upload actually came from an uncompromised camera: capture-method metadata is an assertion and a modified client can bypass browser controls. Do not market this as reliable AI filtering. Moderation is the enforcement path; no AI detector is currently integrated.
-
-Upload intents are object-specific and expire after two hours. The browser sends up to 25 MB directly to the private originals bucket using an upsert-disabled signed token. The server downloads the stored object, checks size and signature against its MIME type, hashes it and finalizes the intent once under a database lock. Optional image previews are re-encoded with Sharp to WebP without original metadata. Originals/video stay private; previews are delivered through visibility checks and 60-second signed URLs. Previously issued links may remain usable for up to that minute after removal. Cached or downloaded media cannot be recalled.
-
-Signature checks do not fully decode or establish safety of every video container; video stays private. Images are decoded when creating previews with a pixel limit. Complete adversarial media/security review and assess memory use at the 25 MB limit before public launch. Camera recordings are silent, at most 60 seconds, and limited by size. Report rate is 12 per account per rolling 24 hours; media intents 36/day and four per report. These are account limits, not proof of one person per account.
-
-Expired-intent maintenance waits five minutes past expiry, removes originals and possible previews, and marks the intent cleaned. Database finalization rejects expired intents, deleted accounts and hidden reports/events. Retries do not create duplicate reports; failed evidence uploads can be retried or skipped after the report is saved.
-
-## Moderation and appeals
-
-Confirmed users can flag events/reports or appeal decisions from their account page. Limit: 20 concerns/account/day. Moderators access the private queue from the sidebar. They can change event statuses, quarantine/remove/restore content, resolve concerns and inspect restricted corrections/audit records. Users see pending/reviewed status for their own concerns. Follows and updates are in-app polling (60 seconds); no email/push notifications are implied.
-
-Pilot operating policy: prohibit fabricated firsthand accounts, synthetic/manipulated evidence presented as capture, harassment, doxxing and private addresses. Allow disclosed writing assistance that does not invent observations. Review specific evidence and context; detector outputs alone are not proof. Quarantine while reviewing material concerns, record the reason, restore when appropriate, and allow appeal. Set staffed response targets, an escalation contact and independent appeal reviewers before launching. These operational staffing arrangements are not provisioned by the app.
-
-## Deletion and retention
-
-Users request deletion in their account. The database blocks further content actions while deletion is pending. A trusted operator runs:
+## Checks
 
 ```sh
-node --env-file=.env.local scripts/delete-account.mjs USER_UUID
+pnpm test
+pnpm typecheck
+pnpm build --webpack
 ```
 
-The script requires a real deletion request and waits for outstanding upload tokens to expire plus five minutes. It removes all files under the owner prefix, including abandoned objects, clears the account's concerns and personal correction payloads, removes their reports and empty event shells, then deletes the auth account. It is retryable when an operation fails. It leaves the request at `active_cleanup_complete_review_and_backups_pending`, never automatically claims complete deletion.
-
-Operator completion checklist: review shared event titles/locations and third-party audit text for the deleted person's information; redact as required without exposing other witnesses; verify bucket prefixes and database references; document when all retained backups containing the data expire or are safely destroyed. Then update the request using its retained request ID to `complete` with `completed_at=now()`.
-
-**Proposed pilot retention policy, requiring operator adoption:** pending uploads expire at two hours and are cleaned by maintenance; live reports/evidence remain until deletion or moderation removal; complete active-system deletion within 30 days of a request; retain ordinary backups at most 30 days; restrict moderation records and redact personal data during deletion review. Supabase/hosting backup settings and legal exceptions must be checked and configured to match before these become user-facing promises. Until adopted/configured, retention and deletion SLA are launch blockers.
-
-## Validation and operations
-
-Run `pnpm typecheck`, `pnpm test`, and `pnpm build --webpack`. Tests execute all three SQL migrations in a local PostgreSQL-compatible PGlite instance with minimal auth/storage schema stubs. They exercise scoring, deduplication, moderation exclusions, duplicate reports, limits, service-function permissions and one-time finalization. This does not substitute for real Supabase Auth/Storage/RLS end-to-end testing.
-
-Before public launch, use separate accounts to verify confirmation/callback, cross-user access denial, private original denial, signed upload expiry, invalid files, preview consent, quarantine/restoration, appeals, deletion and backup expiry. Review on real phones with cameras and weak connections, keyboard/screen readers and target browsers. Validate that people understand the score limitations.
-
-Enable deployment and Supabase error monitoring, authentication-abuse controls, backups/PITR as appropriate, and a tested restore procedure. Assign on-call ownership; document credential rotation, takedowns, security incidents and recovery objectives. Conduct privacy/security review and a restore drill. Public reads currently cap the pilot feed at the latest 200 created events; broader geographic feeds and pagination need design before expanding beyond the pilot.
-
-The app is a PWA shell with manifest/icons and responsive layout; it deliberately has no offline cache of witness or private evidence and does not support offline submissions. Brand color is #70020F. Anton is bundled locally with its SIL Open Font License. Body text uses Arial Unicode MS when installed, falling back to Arial and system sans-serif. The app makes no external font requests. A dedicated /about page explains technical details and links to https://github.com/aiedge-buildathon-2026/team17-natural-intelligence.
-
-Technical references: [Next.js installation](https://nextjs.org/docs/app/getting-started/installation), [Supabase signed upload URLs](https://supabase.com/docs/reference/javascript/storage-from-createsigneduploadurl).
-
-## Local news, themes, and grouping
-
-The feed focuses on Sioux Falls. Theme filters include Food, Traffic, Special events, Local news, Environment, Public services, and Community. Search matches keywords across headlines, approximate locations, categories, and visible report text; theme words expand to related vocabulary. Multiple query terms must all match. This is search over community reports, not an external news aggregator. The pilot feed still loads the latest 200 event listings.
-
-New-report forms suggest up to three related loaded events using headline word overlap, approximate location, and observation time within 24 hours. Selecting a suggestion adds a separate report to that event. On submission, Postgres also groups matching normalized headlines and locations if an existing visible report is within six hours of the submitted observation time, across categories and under a transaction lock. Matching is a heuristic; observation time is user-asserted, and a submitter can explicitly keep a different occurrence separate. The same account cannot add another report to the same event or inflate its account count. The form keeps a duplicate draft unsaved and lets its author open their existing report.
-
-Moderators can group existing duplicate listings. Reports and linked media remain intact, follows are deduplicated, concerns and audit references move to the kept event, and the source listing records its destination. Grouping is refused if an account has reports in both listings, so neither account is silently lost. Corroboration returns to under review unless either listing is conflicting. The score is recalculated using the existing factors; prior scores are never simply added. No existing listings are bulk-merged automatically.
-
-**Upgrade:** on a project that already applied 001–003, apply only `004_local_news_grouping.sql`, then deploy this version. A fresh project applies all four in order. Do not rerun the earlier migrations.
+Tests cover scoring, search/themes, database behavior for the optional backend, and the simulation's grouping, persistence serialization, moderation, appeals, identity checks, limits and deletion. See [VALIDATION.md](VALIDATION.md) for browser checks and remaining limits.
