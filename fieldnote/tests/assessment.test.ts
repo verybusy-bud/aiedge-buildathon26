@@ -1,0 +1,6 @@
+import { test } from 'node:test';import assert from 'node:assert/strict';import { assess } from '../lib/assessment';import { sniff } from '../lib/media';
+const now=Date.parse('2026-10-28T18:00:00Z');const ago=(hours:number)=>new Date(now-hours*3600000).toISOString();
+test('No reports differs from a scored zero',()=>{assert.equal(assess(0,0,null,false,false,now).score,null);assert.equal(assess(1,0,ago(25),false,false,now).score,0);});
+test('Boundaries and score limits',()=>{assert.equal(assess(3,3,ago(6),true,false,now).score,5);assert.equal(assess(1,0,ago(24),false,false,now).score,.5);assert.equal(assess(1,0,ago(24.01),false,true,now).score,0);assert.equal(assess(2,1,ago(6.01),false,true,now).score,1);});
+test('Under review cannot earn moderator points',()=>{assert.equal(assess(2,0,ago(1),false,false,now).factors.moderator,0);});
+test('Unsupported and spoofed media are rejected',()=>{assert.equal(sniff(new Uint8Array([1,2,3])),null);assert.equal(sniff(Buffer.from('<html>not a photo</html>')),null);assert.equal(sniff(Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0])),'image/png');assert.equal(sniff(Buffer.from('0000ftypavif0000')),null);assert.equal(sniff(Buffer.from('0000ftypmp420000')),'video/mp4');});
