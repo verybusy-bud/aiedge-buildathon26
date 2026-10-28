@@ -2,16 +2,19 @@
 import { simulation } from './mode';
 import { freshSimulation, applySimulation, publicSimulation, requireSimUser, simulationAccount, simulationQueue, recalculate, type SimState } from './simulation-core';
 import { sniff } from './media';
+import { createStarterEvents } from './starter-events';
 const STATE='fieldnote-community-v2',SESSION='fieldnote-profile-v2';
 export const simulationChanged='fieldnote:simulation-changed';
 function emit(){window.dispatchEvent(new Event(simulationChanged));}
+function ensureStarterEvents(state:SimState){const known=new Set(state.events.map(event=>event.id));const missing=createStarterEvents().filter(event=>!known.has(event.id));if(!missing.length)return false;state.events.push(...missing.map(event=>({...event,state:'visible'})));return true;}
 const retiredProfileNames = new Set(['cyber-striker','linkis','prairie walker','park walker','river observer','southside neighbor','review moderator']);
 function removeRetiredProfiles(state:SimState){
  const retired=new Set(state.users.filter(user=>retiredProfileNames.has(user.display_name.trim().toLocaleLowerCase())||user.id.startsWith('demo-')||user.email.endsWith('@example.test')).map(user=>user.id));
  if(!retired.size)return false;
  state.users=state.users.filter(user=>!retired.has(user.id));
+ const affectedEvents=new Set(state.events.filter(event=>event.reports.some(report=>retired.has(report.author_id))).map(event=>event.id));
  for(const event of state.events)event.reports=event.reports.filter(report=>!retired.has(report.author_id));
- state.events=state.events.filter(event=>event.reports.length>0);
+ state.events=state.events.filter(event=>!affectedEvents.has(event.id)||event.reports.length>0);
  state.follows=state.follows.filter(follow=>!retired.has(follow.user_id)&&state.events.some(event=>event.id===follow.event_id));
  state.concerns=state.concerns.filter(concern=>!retired.has(concern.user_id)&&state.events.some(event=>event.id===concern.event_id));
  state.audit=state.audit.filter(entry=>!retired.has(entry.actor_id)&&state.events.some(event=>event.id===entry.event_id));
@@ -20,7 +23,7 @@ function removeRetiredProfiles(state:SimState){
  if(retired.has(sessionStorage.getItem(SESSION)??''))sessionStorage.removeItem(SESSION);
  return true;
 }
-function read():SimState{const value=localStorage.getItem(STATE);if(value){const parsed=JSON.parse(value) as SimState;if(parsed.version!==1)throw new Error('Unsupported simulation data.');if(removeRetiredProfiles(parsed))localStorage.setItem(STATE,JSON.stringify(parsed));return parsed;}const state=freshSimulation();localStorage.setItem(STATE,JSON.stringify(state));return state;}
+function read():SimState{const value=localStorage.getItem(STATE);if(value){const parsed=JSON.parse(value) as SimState;if(parsed.version!==1)throw new Error('Unsupported simulation data.');const changed=ensureStarterEvents(parsed);if(removeRetiredProfiles(parsed)||changed)localStorage.setItem(STATE,JSON.stringify(parsed));return parsed;}const state=freshSimulation();localStorage.setItem(STATE,JSON.stringify(state));return state;}
 function write(state:SimState){try{localStorage.setItem(STATE,JSON.stringify(state));}catch{throw new Error('Browser storage is full or unavailable. Remove unused test data and try again.');}emit();}
 function actor(){return sessionStorage.getItem(SESSION);}
 async function locked<T>(task:()=>Promise<T>):Promise<T>{return navigator.locks?navigator.locks.request(STATE,task):task();}
