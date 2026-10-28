@@ -3,7 +3,7 @@ test('Migrations, permissions, corroboration, moderation, uploads and limits',as
  const db=new PGlite();
  try{
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email_confirmed_at timestamptz,raw_user_meta_data jsonb);create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);`);
- for(const name of ['001_core.sql','002_assessment.sql','003_private_uploads.sql']){let sql=await readFile(new URL(`../supabase/migrations/${name}`,import.meta.url),'utf8');sql=sql.replace('create extension if not exists pgcrypto;','');await db.exec(sql);}
+ for(const name of ['001_core.sql','002_assessment.sql','003_private_uploads.sql','004_local_news_grouping.sql']){let sql=await readFile(new URL(`../supabase/migrations/${name}`,import.meta.url),'utf8');sql=sql.replace('create extension if not exists pgcrypto;','');await db.exec(sql);}
  const ids=['00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000003'];
  for(const id of ids)await db.query('insert into auth.users values($1,now(),$2)',[id,JSON.stringify({display_name:'Witness'})]);
  const mutate=async(actor:string,operation:string,payload:unknown)=>{const r=await db.query<{result:any}>('select mutate($1,$2,$3) result',[actor,operation,JSON.stringify(operation==='moderate'?{...payload as object,public_notice:'Review completed; see the updated status.'}:payload)]);return r.rows[0].result;};

@@ -2,7 +2,7 @@
 
 Start with [CLOUD-SETUP.md](CLOUD-SETUP.md) for the GitHub → Supabase → Vercel walkthrough and multi-account signup checks.
 
-A Next.js 16 / React / TypeScript application for separate firsthand accounts of local events. Sioux Falls is the initial pilot. Supabase provides authentication, Postgres and private media storage. Vercel hosts the application; GitHub stores its source.
+A Next.js 16 / React / TypeScript application for Sioux Falls news and local events, with keyword/theme search and separate firsthand accounts grouped under one event. Sioux Falls is the initial pilot. Supabase provides authentication, Postgres and private media storage. Vercel hosts the application; GitHub stores its source.
 
 ## Run locally
 
@@ -18,13 +18,14 @@ For a live connection, set demo false and configure the Supabase values below. S
 
 ## Supabase setup
 
-This is a new implementation with three fresh-install migrations. It was not recovered from or applied to an earlier Fieldnote database. Do not apply these blindly to an existing database: compare its schema and add forward migrations instead.
+This is a new implementation with four ordered migrations. It was not recovered from or applied to an earlier Fieldnote database. Do not apply these blindly to an existing database: compare its schema and add forward migrations instead.
 
 Apply in filename order through Supabase SQL tooling:
 
 1. `supabase/migrations/001_core.sql`
 2. `supabase/migrations/002_assessment.sql`
 3. `supabase/migrations/003_private_uploads.sql`
+4. `supabase/migrations/004_local_news_grouping.sql`
 
 Enable email/password authentication **and require email confirmation**. Set the Site URL to the deployment origin. Allow `https://YOUR-DOMAIN/auth/callback` and the exact localhost/127.0.0.1 callback origins used for development. Signup uses the PKCE callback route. Configure SMTP delivery, password strength and authentication rate limits in Supabase before opening registration.
 
@@ -106,3 +107,13 @@ Enable deployment and Supabase error monitoring, authentication-abuse controls, 
 The app is a PWA shell with manifest/icons and responsive layout; it deliberately has no offline cache of witness or private evidence and does not support offline submissions. Brand color is #70020F. Anton is bundled locally with its SIL Open Font License. Body text uses Arial Unicode MS when installed, falling back to Arial and system sans-serif. The app makes no external font requests. A dedicated /about page explains technical details and links to https://github.com/aiedge-buildathon-2026/team17-natural-intelligence.
 
 Technical references: [Next.js installation](https://nextjs.org/docs/app/getting-started/installation), [Supabase signed upload URLs](https://supabase.com/docs/reference/javascript/storage-from-createsigneduploadurl).
+
+## Local news, themes, and grouping
+
+The feed focuses on Sioux Falls. Theme filters include Food, Traffic, Special events, Local news, Environment, Public services, and Community. Search matches keywords across headlines, approximate locations, categories, and visible report text; theme words expand to related vocabulary. Multiple query terms must all match. This is search over community reports, not an external news aggregator. The pilot feed still loads the latest 200 event listings.
+
+New-report forms suggest up to three related loaded events using headline word overlap, approximate location, and observation time within 24 hours. Selecting a suggestion adds a separate report to that event. On submission, Postgres also groups matching normalized headlines and locations if an existing visible report is within six hours of the submitted observation time, across categories and under a transaction lock. Matching is a heuristic; observation time is user-asserted, and a submitter can explicitly keep a different occurrence separate. The same account cannot add another report to the same event or inflate its account count. The form keeps a duplicate draft unsaved and lets its author open their existing report.
+
+Moderators can group existing duplicate listings. Reports and linked media remain intact, follows are deduplicated, concerns and audit references move to the kept event, and the source listing records its destination. Grouping is refused if an account has reports in both listings, so neither account is silently lost. Corroboration returns to under review unless either listing is conflicting. The score is recalculated using the existing factors; prior scores are never simply added. No existing listings are bulk-merged automatically.
+
+**Upgrade:** on a project that already applied 001–003, apply only `004_local_news_grouping.sql`, then deploy this version. A fresh project applies all four in order. Do not rerun the earlier migrations.

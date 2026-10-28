@@ -30,6 +30,7 @@ The bundled GitHub Actions workflow assumes this application is the repository r
    - `fieldnote/supabase/migrations/001_core.sql`
    - `fieldnote/supabase/migrations/002_assessment.sql`
    - `fieldnote/supabase/migrations/003_private_uploads.sql`
+   - `fieldnote/supabase/migrations/004_local_news_grouping.sql`
 4. Confirm both Storage buckets exist and are private: `evidence-originals` and `evidence-previews`.
 5. In **Authentication**, allow new signups, enable email/password, and require email confirmation.
 
@@ -89,7 +90,7 @@ Official guide: https://supabase.com/docs/guides/auth/redirect-urls
 6. Verify the reports remain separate and the assessment factors reflect two accounts. Confirm the first person's email and private original are not available to the second account or a signed-out viewer.
 7. Try submitting a second report from the same account on the same event. It should require a correction rather than create a duplicate.
 
-If signup says “Email address not authorized,” fix SMTP. If confirmation redirects to localhost, fix Site URL and redirects. If the site still says demo, set `NEXT_PUBLIC_DEMO_MODE=false` in the correct Vercel environment and redeploy. If the feed cannot load, check all three migrations and all three Supabase connection values in Vercel.
+If signup says “Email address not authorized,” fix SMTP. If confirmation redirects to localhost, fix Site URL and redirects. If the site still says demo, set `NEXT_PUBLIC_DEMO_MODE=false` in the correct Vercel environment and redeploy. If the feed cannot load, check all four migrations and all three Supabase connection values in Vercel.
 
 ## 7. Set up moderation and ongoing maintenance
 
@@ -113,3 +114,7 @@ Before wider public access, adopt the retention/moderation policies in README, c
 - `/about` explains the architecture, assessment, media provenance, privacy, moderation, and current limits, and links to the confirmed team repository.
 
 References: https://vercel.com/docs/getting-started-with-vercel · https://vercel.com/docs/environment-variables · https://supabase.com/docs/guides/auth/passwords
+
+## Updating an already-connected pilot
+
+This version adds theme categories and same-event grouping. If migrations 001–003 are already applied, run **only** `fieldnote/supabase/migrations/004_local_news_grouping.sql` in Supabase SQL Editor before deploying the updated app. Existing data is preserved. If Vercel is connected to main, its next deployment uses the updated source after the GitHub push. Test two different accounts reporting the same headline/location/time: the feed should show one story with two separate reports. Confirm a different occurrence can remain separate.

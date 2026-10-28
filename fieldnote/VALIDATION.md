@@ -26,3 +26,7 @@ The source is ready for connection and live integration testing. It should not b
 ## Branding and About update
 
 Updated to exact brand red #70020F, removed the promotional sidebar note, feed introduction panel and decorative right rail, and bundled Anton with its license. Body text uses local Arial Unicode MS/Arial fallbacks. Browser review confirmed the simplified feed and the /about page, including links to the team repository. TypeScript validation passes. No authentication, database or storage behavior was changed by this update.
+
+## Sioux Falls local-news update
+
+Added keyword/theme search, related-event suggestions, atomic exact-match grouping, and moderator-controlled grouping through forward migration 004. Automated checks cover theme search, combined keywords, time/place boundaries, same-account deduplication, different-occurrence opt-out, exclusion of hidden events, moderator authorization, preservation of reports/evidence/follows, score recalculation, and refusal to discard overlapping accounts. Live cloud configuration remains unverified.
