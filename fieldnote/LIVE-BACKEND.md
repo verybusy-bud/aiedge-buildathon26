@@ -22,7 +22,7 @@ For a live connection, set demo false and configure the Supabase values below. S
 
 ## Supabase setup
 
-This is a new implementation with four ordered migrations. It was not recovered from or applied to an earlier Fieldnote database. Do not apply these blindly to an existing database: compare its schema and add forward migrations instead.
+This is a new implementation with six ordered migrations. It was not recovered from or applied to an earlier Fieldnote database. Do not apply these blindly to an earlier Fieldnote database: compare its schema and add forward migrations instead. A fresh project receives migrations 001–006 exactly once, in order.
 
 Apply in filename order through Supabase SQL tooling:
 
@@ -30,6 +30,8 @@ Apply in filename order through Supabase SQL tooling:
 2. `supabase/migrations/002_assessment.sql`
 3. `supabase/migrations/003_private_uploads.sql`
 4. `supabase/migrations/004_local_news_grouping.sql`
+5. `supabase/migrations/005_monetization.sql`
+6. `supabase/migrations/006_editorial_starter_events.sql`
 
 Enable email/password authentication **and require email confirmation**. Set the Site URL to the deployment origin. Allow `https://YOUR-DOMAIN/auth/callback` and the exact localhost/127.0.0.1 callback origins used for development. Signup uses the PKCE callback route. Configure SMTP delivery, password strength and authentication rate limits in Supabase before opening registration.
 
@@ -41,6 +43,7 @@ Set these variables in `.env.local` locally and in the Vercel project environmen
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public project key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only privileged credential |
 | `NEXT_PUBLIC_SITE_URL` | Canonical application origin |
+| `NEXT_PUBLIC_SIMULATION_MODE` | `false` to use shared accounts and database |
 | `NEXT_PUBLIC_DEMO_MODE` | `false` in production |
 | `CRON_SECRET` | Long random secret for maintenance calls |
 
@@ -102,7 +105,7 @@ Operator completion checklist: review shared event titles/locations and third-pa
 
 ## Validation and operations
 
-Run `pnpm typecheck`, `pnpm test`, and `pnpm build --webpack`. Tests execute all three SQL migrations in a local PostgreSQL-compatible PGlite instance with minimal auth/storage schema stubs. They exercise scoring, deduplication, moderation exclusions, duplicate reports, limits, service-function permissions and one-time finalization. This does not substitute for real Supabase Auth/Storage/RLS end-to-end testing.
+Run `pnpm typecheck`, `pnpm test`, and `pnpm build --webpack`. Tests execute all six SQL migrations in a local PostgreSQL-compatible PGlite instance with minimal auth/storage schema stubs. They exercise source-story seeding without fabricated reports, scoring, deduplication, moderation exclusions, duplicate reports, limits, service-function permissions and one-time finalization. This does not substitute for real Supabase Auth/Storage/RLS end-to-end testing.
 
 Before public launch, use separate accounts to verify confirmation/callback, cross-user access denial, private original denial, signed upload expiry, invalid files, preview consent, quarantine/restoration, appeals, deletion and backup expiry. Review on real phones with cameras and weak connections, keyboard/screen readers and target browsers. Validate that people understand the score limitations.
 
