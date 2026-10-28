@@ -1,4 +1,3 @@
-import { demoEvents } from './demo';
 import { assess } from './assessment';
 import { normalize, eventCategories } from './discovery';
 import type { FieldEvent, Report, Evidence } from './types';
@@ -11,7 +10,7 @@ type Intent={id:string;user_id:string;report_id:string;expires_at:string;created
 export type SimState={version:1;users:SimUser[];events:SimEvent[];follows:{user_id:string;event_id:string;created_at:string}[];concerns:Concern[];audit:Audit[];intents:Intent[];history:{event_id:string;score:number|null;factors:unknown;recorded_at:string}[]};
 const id=()=>crypto.randomUUID();
 const now=()=>new Date().toISOString();
-export function freshSimulation():SimState{return {version:1,users:[{id:'demo-0',display_name:'Prairie walker',email:'walker@example.test',role:'member',confirmed:true},{id:'demo-1',display_name:'River observer',email:'river@example.test',role:'member',confirmed:true},{id:'demo-2',display_name:'Southside neighbor',email:'neighbor@example.test',role:'member',confirmed:true},{id:'demo-moderator',display_name:'Review moderator',email:'review@example.test',role:'moderator',confirmed:true}],events:demoEvents().map(e=>({...e,state:'visible'})),follows:[],concerns:[],audit:[],intents:[],history:[]};}
+export function freshSimulation():SimState{return {version:1,users:[],events:[],follows:[],concerns:[],audit:[],intents:[],history:[]};}
 export function requireSimUser(state:SimState,userId:string|null){const user=state.users.find(u=>u.id===userId);if(!user?.confirmed)throw new Error('Choose or confirm a simulated account first.');return user;}
 export function recalculate(state:SimState){for(const e of state.events){const reports=e.reports.filter(r=>r.state==='visible');const latest=reports.map(r=>r.created_at).sort().at(-1)??null;const captures=new Set(reports.flatMap(r=>r.evidence.map(v=>v.sha256))).size;Object.assign(e,{latest_report_at:latest,...assess(new Set(reports.map(r=>r.author_id)).size,captures,latest,e.status==='corroborated',e.status==='conflicting')});const last=state.history.filter(h=>h.event_id===e.id).at(-1);if(!last||last.score!==e.score||JSON.stringify(last.factors)!==JSON.stringify(e.factors))state.history.push({event_id:e.id,score:e.score,factors:e.factors,recorded_at:now()});}state.history=state.history.slice(-1000);}
 export function publicSimulation(state:SimState):FieldEvent[]{recalculate(state);return state.events.filter(e=>e.state==='visible').map(e=>({...e,reports:e.reports.filter(r=>r.state==='visible').map(r=>({...r,display_name:state.users.find(u=>u.id===r.author_id)?.display_name??r.display_name}))}));}
