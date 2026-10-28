@@ -192,3 +192,17 @@ h1 > span { color: #70020f; }
   .about-footer { gap: 20px; }
   .about-footer > span { width: 100%; margin: 0; }
 }
+
+/* Improve readability of the navigation and hero labels highlighted in the review. */
+.breadcrumb, .breadcrumb strong { font-size: 15px; }
+.header-about { font-size: 16px; }
+.page-heading .eyebrow { font-size: 13px; line-height: 1.5; }
+.supporter-nav { display: flex; flex-direction: column; gap: 9px; padding: 0 3px 14px; }
+.supporter-nav a { color: #fff; font-size: 14px; line-height: 1.45; text-decoration: none; }
+.supporter-nav a:hover { text-decoration: underline; }
+@media (max-width: 700px) {
+  .breadcrumb, .breadcrumb strong { font-size: 13px; }
+  .header-about { font-size: 15px; }
+  .page-heading .eyebrow { font-size: 12px; }
+  .supporter-nav a { font-size: 14px; }
+}
