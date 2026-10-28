@@ -11,7 +11,7 @@ const vocabulary: Record<string, string[]> = {
 export function normalize(text:string) { return text.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
 function tokens(text:string) { return normalize(text.replace(/special\s+events?/gi,'specialevents')).split(/\s+/).filter(Boolean); }
 export function eventThemes(event:FieldEvent):string[] {
-  const words = new Set(tokens(`${event.title} ${event.category} ${event.reports.map(r=>r.body).join(' ')}`));
+  const words = new Set(tokens(`${event.title} ${event.category} ${event.editorial_summary??''} ${event.source_name??''} ${event.reports.map(r=>r.body).join(' ')}`));
   const result = Object.entries(vocabulary).filter(([,terms])=>terms.some(t=>words.has(t))).map(([key])=>key);
   if(event.category==='Food & drink'&&!result.includes('food'))result.push('food');
   if(event.category==='Roads & transit'&&!result.includes('traffic'))result.push('traffic');
@@ -22,7 +22,7 @@ export function matchesSearch(event:FieldEvent,query:string,theme:string='All ne
   const inferred = eventThemes(event);
   const themeKey = theme==='Special events'?'specialevents':theme.toLowerCase();
   if(theme!=='All news'&&!inferred.includes(themeKey)&&event.category!==theme)return false;
-  const haystack=tokens(`${event.title} ${event.location} ${event.category} ${event.reports.map(r=>r.body).join(' ')}`);
+  const haystack=tokens(`${event.title} ${event.location} ${event.category} ${event.editorial_summary??''} ${event.source_name??''} ${event.reports.map(r=>r.body).join(' ')}`);
   return tokens(query).every(term=> inferred.includes(term)||haystack.some(word=>word.startsWith(term)));
 }
 const stopWords=new Set(['a','an','the','at','in','on','of','to','and','near','is','was','seen','reported','report','sioux','falls']);
@@ -32,8 +32,10 @@ export function relatedEvents(events:FieldEvent[],title:string,location:string,o
   const titleWords=significant(title),place=normalize(location),when=Date.parse(observedAt);
   if(titleWords.size<2||!Number.isFinite(when))return [];
   return events.map(event=>{
-    const closest=Math.min(...event.reports.map(r=>Math.abs(Date.parse(r.observed_at)-when)));
-    if(closest>24*3600000)return {event,score:0};
+    const timestamps=event.reports.map(r=>Date.parse(r.observed_at));
+    if(!timestamps.length)timestamps.push(Date.parse(event.source_published_at??event.created_at));
+    const closest=Math.min(...timestamps.map(time=>Math.abs(time-when)));
+    if(closest>24*3600000&&!event.summary_ai_generated)return {event,score:0};
     const similarity=overlap(titleWords,significant(event.title));
     const samePlace=place.length>=3&&normalize(event.location)===place;
     const relatedPlace=place.length>=3&&overlap(significant(place),significant(event.location))>=.35;
