@@ -3,7 +3,7 @@ test('Migrations, permissions, corroboration, moderation, uploads and limits',as
  const db=new PGlite();
  try{
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email_confirmed_at timestamptz,raw_user_meta_data jsonb);create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);`);
- for(const name of ['001_core.sql','002_assessment.sql','003_private_uploads.sql','004_local_news_grouping.sql','005_monetization.sql']){let sql=await readFile(new URL(`../supabase/migrations/${name}`,import.meta.url),'utf8');sql=sql.replace('create extension if not exists pgcrypto;','');await db.exec(sql);}
+ for(const name of ['001_core.sql','002_assessment.sql','003_private_uploads.sql','004_local_news_grouping.sql','005_monetization.sql','006_editorial_starter_events.sql']){let sql=await readFile(new URL(`../supabase/migrations/${name}`,import.meta.url),'utf8');sql=sql.replace('create extension if not exists pgcrypto;','');await db.exec(sql);}
  const ids=['00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000003'];
  for(const id of ids)await db.query('insert into auth.users values($1,now(),$2)',[id,JSON.stringify({display_name:'Witness'})]);
  const mutate=async(actor:string,operation:string,payload:unknown)=>{const r=await db.query<{result:any}>('select mutate($1,$2,$3) result',[actor,operation,JSON.stringify(operation==='moderate'?{...payload as object,public_notice:'Review completed; see the updated status.'}:payload)]);return r.rows[0].result;};
@@ -21,14 +21,16 @@ test('Migrations, permissions, corroboration, moderation, uploads and limits',as
  const secondIntent=(await db.query<{v:any}>('select prepare_upload($1,$2) v',[ids[0],first.report_id])).rows[0].v;
  await db.query('select finish_upload($1,$2,$3,$4,$5,$6)',[ids[0],secondIntent.id,'a'.repeat(64),'image/jpeg',100,null]);
  const feed=(await db.query<{v:any}>('select public_feed() v')).rows[0].v;
- assert.equal(feed.length,1);assert.equal(feed[0].score,3.5);assert.equal(feed[0].factors.provenance,.5);assert.equal(feed[0].reports.length,2);
+ const reported=feed.find((event:any)=>event.id===eid);assert.ok(reported);assert.equal(reported.score,3.5);assert.equal(reported.factors.provenance,.5);assert.equal(reported.reports.length,2);
+ const starters=feed.filter((event:any)=>event.summary_ai_generated);assert.equal(starters.length,7);assert.ok(starters.every((event:any)=>event.reports.length===0&&event.source_url&&event.editorial_summary));
+ const sourceEvent=feed.find((event:any)=>event.id==='e1000000-0000-4000-8000-000000000001');assert.equal(sourceEvent.source_name,'Sioux Falls Simplified');assert.match(sourceEvent.source_url,/sfsimplified\.com/);
  assert.ok(!JSON.stringify(feed).includes('original_path'));assert.ok(!JSON.stringify(feed).includes('email'));
  assert.equal(feed[0].score,assess(2,1,new Date().toISOString(),true,false).score);
  await mutate(ids[2],'moderate',{event_id:eid,report_id:first.report_id,state:'quarantined',reason:'Evidence needs another review.'});
  const assessment=(await db.query<{v:any}>('select assessment($1) v',[eid])).rows[0].v;assert.equal(assessment.factors.provenance,0);assert.equal(assessment.factors.accounts,0);
  await mutate(ids[2],'moderate',{event_id:eid,report_id:first.report_id,state:'visible',reason:'Restore after completing review.'});
  await mutate(ids[2],'moderate',{event_id:eid,state:'removed',reason:'Temporarily remove this event.'});
- assert.deepEqual((await db.query<{v:any}>('select public_feed() v')).rows[0].v,[]);
+ assert.ok(!(await db.query<{v:any}>('select public_feed() v')).rows[0].v.some((event:any)=>event.id===eid));
  await mutate(ids[2],'moderate',{event_id:eid,state:'visible',reason:'Restore after completing review.'});
  for(let i=0;i<11;i++)await mutate(ids[0],'create',{...payload,title:`Another observed event ${i}`});
  await assert.rejects(()=>mutate(ids[0],'create',payload),/12 reports/);
