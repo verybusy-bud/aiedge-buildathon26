@@ -35,7 +35,7 @@ export function relatedEvents(events:FieldEvent[],title:string,location:string,o
     const timestamps=event.reports.map(r=>Date.parse(r.observed_at));
     if(!timestamps.length)timestamps.push(Date.parse(event.source_published_at??event.created_at));
     const closest=Math.min(...timestamps.map(time=>Math.abs(time-when)));
-    if(closest>24*3600000&&!event.summary_ai_generated)return {event,score:0};
+    if(closest>24*3600000&&!event.source_url)return {event,score:0};
     const similarity=overlap(titleWords,significant(event.title));
     const samePlace=place.length>=3&&normalize(event.location)===place;
     const relatedPlace=place.length>=3&&overlap(significant(place),significant(event.location))>=.35;
