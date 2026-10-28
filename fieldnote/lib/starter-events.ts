@@ -4,6 +4,18 @@ type StarterEvent = Pick<FieldEvent,'id'|'title'|'category'|'location'|'created_
 
 const simplified='https://www.sfsimplified.com/your-week-simplified-oct-28-2026/';
 
+const editorialProfiles=[
+ {name:'Prairie Walker',initials:'PW'},
+ {name:'River Observer',initials:'RO'},
+ {name:'Southside Neighbor',initials:'SN'},
+] as const;
+
+export function editorialProfile(eventId:string){
+ const match=eventId.match(/(\d{3})$/);
+ const index=match?Math.max(0,Number(match[1])-1):0;
+ return editorialProfiles[index%editorialProfiles.length];
+}
+
 export const starterEvents:StarterEvent[]=[
  {id:'e1000000-0000-4000-8000-000000000001',title:'Downtown convention center discussion returns',category:'Local news',location:'Downtown Sioux Falls',created_at:'2026-10-28T12:00:00-05:00',source_published_at:'2026-10-28',source_name:'Sioux Falls Simplified',source_url:simplified,summary_ai_generated:true,editorial_summary:'Experience Sioux Falls and Forward Sioux Falls are renewing public discussion of a downtown convention center while considering continued use of the existing facility.'},
  {id:'e1000000-0000-4000-8000-000000000002',title:'Residents share data center concerns',category:'Community',location:'Carnegie Town Hall · Sioux Falls',created_at:'2026-10-28T12:00:00-05:00',source_published_at:'2026-10-28',source_name:'Sioux Falls Simplified',source_url:simplified,summary_ai_generated:true,editorial_summary:'Hundreds of residents attended a public meeting at Carnegie Town Hall to discuss data centers and share concerns with city and county officials.'},
