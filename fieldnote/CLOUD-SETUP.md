@@ -4,7 +4,7 @@ Fieldnote already contains the shared-service code for email accounts, reports, 
 
 ## Before you start
 
-You said this Supabase project has no Fieldnote SQL migrations yet. That means it can receive the full migration sequence once, in order. These migrations create the app schema, access controls, upload handling, grouping and monetization tables, and seven source-linked starter stories. The starter stories contain AI-written summaries and zero witness reports.
+You said this Supabase project has no Fieldnote SQL migrations yet. That means it can receive the full migration sequence once, in order. These migrations create the app schema, access controls, upload handling, grouping and monetization tables, and seven source-linked starter stories. The starter stories contain source-linked editorial summaries and zero witness reports.
 
 Keep the Supabase project dashboard open. Do not send any keys in chat. In particular, the service-role key must stay private.
 
