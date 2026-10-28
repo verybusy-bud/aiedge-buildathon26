@@ -5,7 +5,22 @@ import { sniff } from './media';
 const STATE='fieldnote-community-v2',SESSION='fieldnote-profile-v2';
 export const simulationChanged='fieldnote:simulation-changed';
 function emit(){window.dispatchEvent(new Event(simulationChanged));}
-function read():SimState{const value=localStorage.getItem(STATE);if(value){const parsed=JSON.parse(value);if(parsed.version!==1)throw new Error('Unsupported simulation data.');return parsed;}const state=freshSimulation();localStorage.setItem(STATE,JSON.stringify(state));return state;}
+const retiredProfileNames = new Set(['cyber-striker','linkis','prairie walker','park walker','river observer','southside neighbor','review moderator']);
+function removeRetiredProfiles(state:SimState){
+ const retired=new Set(state.users.filter(user=>retiredProfileNames.has(user.display_name.trim().toLocaleLowerCase())||user.id.startsWith('demo-')||user.email.endsWith('@example.test')).map(user=>user.id));
+ if(!retired.size)return false;
+ state.users=state.users.filter(user=>!retired.has(user.id));
+ for(const event of state.events)event.reports=event.reports.filter(report=>!retired.has(report.author_id));
+ state.events=state.events.filter(event=>event.reports.length>0);
+ state.follows=state.follows.filter(follow=>!retired.has(follow.user_id)&&state.events.some(event=>event.id===follow.event_id));
+ state.concerns=state.concerns.filter(concern=>!retired.has(concern.user_id)&&state.events.some(event=>event.id===concern.event_id));
+ state.audit=state.audit.filter(entry=>!retired.has(entry.actor_id)&&state.events.some(event=>event.id===entry.event_id));
+ state.intents=state.intents.filter(intent=>!retired.has(intent.user_id));
+ state.history=state.history.filter(row=>state.events.some(event=>event.id===row.event_id));
+ if(retired.has(sessionStorage.getItem(SESSION)??''))sessionStorage.removeItem(SESSION);
+ return true;
+}
+function read():SimState{const value=localStorage.getItem(STATE);if(value){const parsed=JSON.parse(value) as SimState;if(parsed.version!==1)throw new Error('Unsupported simulation data.');if(removeRetiredProfiles(parsed))localStorage.setItem(STATE,JSON.stringify(parsed));return parsed;}const state=freshSimulation();localStorage.setItem(STATE,JSON.stringify(state));return state;}
 function write(state:SimState){try{localStorage.setItem(STATE,JSON.stringify(state));}catch{throw new Error('Browser storage is full or unavailable. Remove unused test data and try again.');}emit();}
 function actor(){return sessionStorage.getItem(SESSION);}
 async function locked<T>(task:()=>Promise<T>):Promise<T>{return navigator.locks?navigator.locks.request(STATE,task):task();}
