@@ -1,2 +1,2 @@
-// A complete browser simulation is the default. Live services require an explicit opt-in.
-export const simulation = process.env.NEXT_PUBLIC_SIMULATION_MODE !== 'false';
+// Presentation build: use browser-local accounts and storage; no cloud auth or email step.
+export const simulation = true;
