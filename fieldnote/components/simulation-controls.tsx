@@ -1,15 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ArrowRight, Download, Users } from 'lucide-react';
-import { simulationUsers, selectSimulationUser, createSimulationUser, simulationMedia } from '@/lib/simulation';
+import { Download } from 'lucide-react';
+import { createSimulationUser, signInSimulationUser, simulationMedia } from '@/lib/simulation';
 import type { Evidence } from '@/lib/types';
 
 export function SimulationAuth({done}:{done:(message:string)=>void}){
- const [users,setUsers]=useState<ReturnType<typeof simulationUsers>>([]),[name,setName]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
- useEffect(()=>{try{setUsers(simulationUsers());}catch(e){setError((e as Error).message);}},[]);
- return <div className="simulation-auth"><p>Create a profile or choose one saved in this browser.</p>{users.length>0&&<div className="test-accounts">{users.map(user=><button key={user.id} className="test-account" onClick={()=>{try{selectSimulationUser(user.id);done(`Welcome back, ${user.display_name}.`);}catch(e){setError((e as Error).message);}}}><Users size={17}/><span><strong>{user.display_name}</strong><small>Use this profile</small></span><ArrowRight size={16}/></button>)}</div>}
- <form className="form" onSubmit={async e=>{e.preventDefault();setBusy(true);setError('');try{const user=await createSimulationUser(name);setUsers(simulationUsers());done(`Welcome, ${user.display_name}. You can now share an observation.`);}catch(e){setError((e as Error).message);}finally{setBusy(false);}}}><label>Your name<input minLength={2} maxLength={40} required value={name} onChange={e=>setName(e.target.value)} placeholder="Name" autoComplete="off"/></label><button className="primary" disabled={busy}>Create profile</button></form>
- {error&&<p className="form-error" role="alert">{error}</p>}<small className="simulation-footnote">Profiles and posts stay in this browser. They are not shared with other visitors or devices.</small></div>;
+ const [signup,setSignup]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ return <div className="simulation-auth"><p>{signup?'Create an account to join the Sioux Falls community.':'Sign in to continue to your Fieldnote account.'}</p>
+ <form className="form" onSubmit={async e=>{e.preventDefault();setBusy(true);setError('');const f=new FormData(e.currentTarget);try{const user=signup?await createSimulationUser(String(f.get('username')),String(f.get('email')),String(f.get('password'))):await signInSimulationUser(String(f.get('email')),String(f.get('password')));done(`Welcome, ${user.display_name}.`);}catch(e){setError((e as Error).message);}finally{setBusy(false);}}}>{signup&&<label>Username<input name="username" minLength={2} maxLength={40} required autoComplete="username"/></label>}<label>Email address<input name="email" type="email" required autoComplete="email"/></label><label>Password<input name="password" type="password" required minLength={12} autoComplete={signup?'new-password':'current-password'}/></label>{error&&<p className="form-error" role="alert">{error}</p>}<button className="primary" disabled={busy}>{busy?'Please wait…':signup?'Create account':'Sign in'}</button></form>
+ <button type="button" className="text-button" onClick={()=>{setSignup(!signup);setError('');}}>{signup?'Already have an account? Sign in':'New here? Create an account'}</button><small className="simulation-footnote">Accounts and posts stay in this browser. No confirmation email is sent; this is not a shared online account.</small></div>;
 }
 
 export function SimulationEvidence({evidence,original=false}:{evidence:Evidence;original?:boolean}){

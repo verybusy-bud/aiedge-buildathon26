@@ -1,6 +1,6 @@
 'use client';
 import { simulation } from './mode';
-import { freshSimulation, applySimulation, publicSimulation, requireSimUser, simulationAccount, simulationQueue, recalculate, presentationProfiles, type SimState } from './simulation-core';
+import { freshSimulation, applySimulation, publicSimulation, requireSimUser, simulationAccount, simulationQueue, recalculate, type SimState } from './simulation-core';
 import { sniff } from './media';
 import { createStarterEvents } from './starter-events';
 import { demoEvents } from './demo';
@@ -9,11 +9,10 @@ export const simulationChanged='fieldnote:simulation-changed';
 function emit(){window.dispatchEvent(new Event(simulationChanged));}
 function ensurePresentationData(state:SimState){
  let changed=false;
- for(const profile of presentationProfiles){
-  const existing=state.users.find(user=>user.id===profile.id);
-  if(existing){if(!existing.confirmed){existing.confirmed=true;changed=true;}continue;}
-  state.users.push({...profile});changed=true;
- }
+ const presetIds=new Set(['demo-cyber-striker','demo-linkis','demo-0','demo-park-walker','demo-1','demo-2','demo-moderator']);
+ const users=state.users.filter(user=>!presetIds.has(user.id));
+ if(users.length!==state.users.length){state.users=users;changed=true;}
+ if(presetIds.has(sessionStorage.getItem(SESSION)??''))sessionStorage.removeItem(SESSION);
  const known=new Set(state.events.map(event=>event.id));
  const missing=[...demoEvents(),...createStarterEvents()].filter(event=>!known.has(event.id));
  if(missing.length){state.events.push(...missing.map(event=>({...event,state:'visible'})));changed=true;}
@@ -28,7 +27,9 @@ async function database(){return new Promise<IDBDatabase>((resolve,reject)=>{con
 async function blobStore(action:'get'|'put'|'delete',key:string,value?:Blob):Promise<Blob|undefined>{const db=await database();try{return await new Promise((resolve,reject)=>{const tx=db.transaction('files',action==='get'?'readonly':'readwrite'),store=tx.objectStore('files');const request=action==='get'?store.get(key):action==='put'?store.put(value,key):store.delete(key);let result:Blob|undefined;request.onsuccess=()=>{result=action==='get'?request.result:undefined;};tx.oncomplete=()=>resolve(result);tx.onerror=()=>reject(new Error('Could not save media in this browser.'));tx.onabort=()=>reject(new Error('Browser media transaction was cancelled.'));});}finally{db.close();}}
 export function simulationUsers(){return read().users;}
 export function selectSimulationUser(id:string){requireSimUser(read(),id);sessionStorage.setItem(SESSION,id);emit();}
-export async function createSimulationUser(name:string){return locked(async()=>{if(name.trim().length<2||name.length>40)throw new Error('Use a name between 2 and 40 characters.');const state=read();const user={id:crypto.randomUUID(),display_name:name.trim(),email:`local-${crypto.randomUUID().slice(0,8)}@fieldnote.local`,role:'member' as const,confirmed:true};state.users.push(user);write(state);selectSimulationUser(user.id);return user;});}
+async function passwordDigest(password:string,salt:string){const material=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:new TextEncoder().encode(salt),iterations:120000},material,256);return Array.from(new Uint8Array(bits),byte=>byte.toString(16).padStart(2,'0')).join('');}
+export async function createSimulationUser(name:string,email?:string,password?:string){return locked(async()=>{const displayName=name.trim(),address=(email??`local-${crypto.randomUUID().slice(0,8)}@fieldnote.local`).trim().toLowerCase(),secret=password??crypto.randomUUID();if(displayName.length<2||displayName.length>40)throw new Error('Use a username between 2 and 40 characters.');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address))throw new Error('Enter a valid email address.');if(secret.length<12)throw new Error('Choose a password with at least 12 characters.');const state=read();if(state.users.some(user=>user.email.toLowerCase()===address))throw new Error('An account already uses this email. Sign in instead.');const password_salt=crypto.randomUUID()+crypto.randomUUID(),password_hash=await passwordDigest(secret,password_salt);const user={id:crypto.randomUUID(),display_name:displayName,email:address,role:'member' as const,confirmed:true,password_salt,password_hash};state.users.push(user);write(state);selectSimulationUser(user.id);return user;});}
+export async function signInSimulationUser(email:string,password:string){return locked(async()=>{const address=email.trim().toLowerCase(),state=read(),user=state.users.find(candidate=>candidate.email.toLowerCase()===address);if(!user?.password_salt||!user.password_hash)throw new Error('Email or password is incorrect.');const match=await passwordDigest(password,user.password_salt);if(match!==user.password_hash)throw new Error('Email or password is incorrect.');selectSimulationUser(user.id);return user;});}
 export async function confirmSimulationUser(id:string){await locked(async()=>{const state=read(),user=state.users.find(u=>u.id===id);if(!user)throw new Error('Profile unavailable.');user.confirmed=true;write(state);});selectSimulationUser(id);}
 export function simulatedClient(){return {auth:{
  getUser:async()=>{const user=read().users.find(u=>u.id===actor()&&u.confirmed);return {data:{user:user?{id:user.id,email:user.email,email_confirmed_at:'simulated'}:null},error:null};},

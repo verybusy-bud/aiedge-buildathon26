@@ -4,7 +4,7 @@ Reliable local information, without the noise. Fieldnote organizes Sioux Falls n
 
 ## Presentation demo
 
-The current presentation build uses browser-local simulation only. No Supabase connection, email confirmation, passwords, or payment credentials are used. Seven ready-to-select profiles are included: Cyber-Striker, Linkis, Prairie Walker, Park Walker, River Observer, Southside Neighbor, and Review Moderator. People can also create another local profile without email verification.
+The current presentation build uses browser-local simulation only. Accounts have a username, email address, and password; no confirmation email is sent. Passwords are hashed before local storage. There are no preset accounts. People create an account and sign back in with those credentials in the same browser.
 
 Reports, profiles, bookmarks, and image captures stay in that browser. On the Vercel presentation site, each browser has its own local records; different visitors and devices do not share data. The sample witness reports are for demonstration and are not real reports from Sioux Falls residents.
 

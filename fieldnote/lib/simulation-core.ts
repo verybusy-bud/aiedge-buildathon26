@@ -4,7 +4,7 @@ import { createStarterEvents } from './starter-events';
 import { demoEvents } from './demo';
 import type { FieldEvent, Report, Evidence } from './types';
 
-export type SimUser={id:string;display_name:string;email:string;role:'member'|'moderator';confirmed:boolean};
+export type SimUser={id:string;display_name:string;email:string;role:'member'|'moderator';confirmed:boolean;password_salt?:string;password_hash?:string};
 type SimEvent=FieldEvent&{state:string;merged_into?:string};
 type Concern={id:string;user_id:string;event_id:string;report_id?:string;reason:string;kind:string;resolved:boolean;created_at:string};
 type Audit={id:string;actor_id:string;event_id:string;action:string;reason:string;details:Record<string,any>;created_at:string};
@@ -12,16 +12,7 @@ type Intent={id:string;user_id:string;report_id:string;expires_at:string;created
 export type SimState={version:1;users:SimUser[];events:SimEvent[];follows:{user_id:string;event_id:string;created_at:string}[];concerns:Concern[];audit:Audit[];intents:Intent[];history:{event_id:string;score:number|null;factors:unknown;recorded_at:string}[]};
 const id=()=>crypto.randomUUID();
 const now=()=>new Date().toISOString();
-export const presentationProfiles:SimUser[]=[
- {id:'demo-cyber-striker',display_name:'Cyber-Striker',email:'cyber-striker@example.test',role:'member',confirmed:true},
- {id:'demo-linkis',display_name:'Linkis',email:'linkis@example.test',role:'member',confirmed:true},
- {id:'demo-0',display_name:'Prairie Walker',email:'prairie-walker@example.test',role:'member',confirmed:true},
- {id:'demo-park-walker',display_name:'Park Walker',email:'park-walker@example.test',role:'member',confirmed:true},
- {id:'demo-1',display_name:'River Observer',email:'river-observer@example.test',role:'member',confirmed:true},
- {id:'demo-2',display_name:'Southside Neighbor',email:'southside-neighbor@example.test',role:'member',confirmed:true},
- {id:'demo-moderator',display_name:'Review Moderator',email:'review-moderator@example.test',role:'moderator',confirmed:true},
-];
-export function freshSimulation():SimState{return {version:1,users:presentationProfiles.map(user=>({...user})),events:[...demoEvents(),...createStarterEvents()].map(event=>({...event,state:'visible'})),follows:[],concerns:[],audit:[],intents:[],history:[]};}
+export function freshSimulation():SimState{return {version:1,users:[],events:[...demoEvents(),...createStarterEvents()].map(event=>({...event,state:'visible'})),follows:[],concerns:[],audit:[],intents:[],history:[]};}
 export function requireSimUser(state:SimState,userId:string|null){const user=state.users.find(u=>u.id===userId);if(!user?.confirmed)throw new Error('Choose or confirm a simulated account first.');return user;}
 export function recalculate(state:SimState){for(const e of state.events){const reports=e.reports.filter(r=>r.state==='visible');const latest=reports.map(r=>r.created_at).sort().at(-1)??null;const captures=new Set(reports.flatMap(r=>r.evidence.map(v=>v.sha256))).size;Object.assign(e,{latest_report_at:latest,...assess(new Set(reports.map(r=>r.author_id)).size,captures,latest,e.status==='corroborated',e.status==='conflicting')});const last=state.history.filter(h=>h.event_id===e.id).at(-1);if(!last||last.score!==e.score||JSON.stringify(last.factors)!==JSON.stringify(e.factors))state.history.push({event_id:e.id,score:e.score,factors:e.factors,recorded_at:now()});}state.history=state.history.slice(-1000);}
 export function publicSimulation(state:SimState):FieldEvent[]{recalculate(state);return state.events.filter(e=>e.state==='visible').map(e=>({...e,reports:e.reports.filter(r=>r.state==='visible').map(r=>({...r,display_name:state.users.find(u=>u.id===r.author_id)?.display_name??r.display_name}))}));}

@@ -1,24 +1,14 @@
 # Fieldnote presentation setup
 
-The presentation version runs entirely in the browser. It does not use Supabase, email verification, passwords, Stripe, or server-side account storage.
+The presentation version runs entirely in the browser. It does not use Supabase, email delivery, Stripe, or server-side account storage.
 
-## Demo profiles
+## Create an account
 
-The sign-in panel offers these seven local profiles:
-
-- Cyber-Striker
-- Linkis
-- Prairie Walker
-- Park Walker
-- River Observer
-- Southside Neighbor
-- Review Moderator
-
-Choose a profile to post or review. You can also create a new profile without an email step. Profile changes and reports are saved in the browser for the presentation.
+Create a new account with a username, email address, and password. No confirmation email is sent. Passwords are hashed before saving in the browser. Sign in later with the same email and password. There are no preset accounts.
 
 ## What is saved locally
 
-Text and profile data use browser storage. Captured media uses browser IndexedDB. The same browser can switch among the demo profiles and see their shared demo feed. Another device or browser has its own separate data; this version does not sync between visitors.
+Text, profiles, and password hashes use browser storage. Captured media uses browser IndexedDB. Accounts and reports created in the same browser see the same local feed. Another device or browser has its own separate data; this version does not sync between visitors.
 
 The sample reports are demonstration content, not real submissions by Sioux Falls residents. The seven source-linked news stories remain available in the feed.
 
