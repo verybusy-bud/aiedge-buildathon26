@@ -4,15 +4,21 @@ import { freshSimulation, applySimulation, publicSimulation, requireSimUser, sim
 import { sniff } from './media';
 import { createStarterEvents } from './starter-events';
 import { demoEvents } from './demo';
-const STATE='fieldnote-community-v2',SESSION='fieldnote-profile-v2';
+const STATE='fieldnote-community-v2',SESSION='fieldnote-profile-v2',PROFILE_RESET='fieldnote-profile-reset-v1';
 export const simulationChanged='fieldnote:simulation-changed';
 function emit(){window.dispatchEvent(new Event(simulationChanged));}
 function ensurePresentationData(state:SimState){
  let changed=false;
- const presetIds=new Set(['demo-cyber-striker','demo-linkis','demo-0','demo-park-walker','demo-1','demo-2','demo-moderator']);
- const users=state.users.filter(user=>!presetIds.has(user.id));
- if(users.length!==state.users.length){state.users=users;changed=true;}
- if(presetIds.has(sessionStorage.getItem(SESSION)??''))sessionStorage.removeItem(SESSION);
+ if(localStorage.getItem(PROFILE_RESET)!=='done'){
+  state.users=[];
+  state.follows=[];
+  state.concerns=[];
+  state.intents=[];
+  state.audit=[];
+  sessionStorage.removeItem(SESSION);
+  localStorage.setItem(PROFILE_RESET,'done');
+  changed=true;
+ }
  const known=new Set(state.events.map(event=>event.id));
  const missing=[...demoEvents(),...createStarterEvents()].filter(event=>!known.has(event.id));
  if(missing.length){state.events.push(...missing.map(event=>({...event,state:'visible'})));changed=true;}
